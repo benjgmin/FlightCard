@@ -65,7 +65,3 @@ Built with heavy AI assistance. My job was the parts AI gets wrong: checking eve
 Weather from the [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/). Airport diagrams from the FAA digital Terminal Procedures Publication.
 
 For situational awareness only. Not a substitute for an official weather briefing.
-
-## About
-
-Built by Ben Eccles, commercial pilot student at Embry-Riddle Aeronautical University, instrument rated.
