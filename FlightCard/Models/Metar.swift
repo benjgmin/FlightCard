@@ -1,4 +1,3 @@
-
 import Foundation
 
 /// One METAR observation from the AWC data API (`/metar?format=json`).
@@ -15,6 +14,8 @@ struct Metar: Decodable, Identifiable {
     let elevationMeters: Double?
     let clouds: [CloudLayer]
     let flightCategory: FlightCategory?
+    /// True when AWC left the category blank and we derived it from ceiling and visibility.
+    let isFlightCategoryComputed: Bool
 
     var id: String { "\(icaoId)-\(observedAt.timeIntervalSince1970)" }
 
@@ -25,17 +26,18 @@ struct Metar: Decodable, Identifiable {
         }
         return altimeterHpa.map { $0 * 0.02953 }
     }
-    
+
+    /// "RMK ... LAST" means this is the station's last report until it reopens,
+    /// so the data will go stale overnight without it being a station outage.
+    var isLastReport: Bool {
+        guard let remarks = rawText.range(of: " RMK ") else { return false }
+        return rawText[remarks.upperBound...].contains(#/\bLAST\b/#)
+    }
+
     /// AWC reports station elevation in meters.
     var elevationFeet: Double? { elevationMeters.map { $0 * 3.28084 } }
 
-    /// Lowest broken, overcast, or obscured layer.
-    var ceilingFeet: Int? {
-        clouds
-            .filter { ["BKN", "OVC", "OVX", "VV"].contains($0.cover) }
-            .compactMap(\.base)
-            .min()
-    }
+    var ceilingFeet: Int? { Metar.ceiling(from: clouds) }
 
     private enum CodingKeys: String, CodingKey {
         case icaoId, name, obsTime, rawOb, temp, dewp, wdir, wspd, wgst, visib, altim, elev, clouds, fltCat
@@ -52,7 +54,7 @@ struct Metar: Decodable, Identifiable {
         altimeterHpa = try c.decodeIfPresent(Double.self, forKey: .altim)
         elevationMeters = try c.decodeIfPresent(Double.self, forKey: .elev)
         clouds = try c.decodeIfPresent([CloudLayer].self, forKey: .clouds) ?? []
-        flightCategory = try c.decodeIfPresent(String.self, forKey: .fltCat)
+        let reportedCategory = try c.decodeIfPresent(String.self, forKey: .fltCat)
             .flatMap(FlightCategory.init(rawValue:))
 
         // wdir is a number normally, but "VRB" when variable.
@@ -74,6 +76,29 @@ struct Metar: Decodable, Identifiable {
         } else {
             visibility = nil
         }
+
+        // AWC sometimes leaves fltCat blank, even at big airports. Fall back to the
+        // FAA definitions, but only when visibility is known: guessing VFR without
+        // it would be worse than showing nothing.
+        if let reportedCategory {
+            flightCategory = reportedCategory
+            isFlightCategoryComputed = false
+        } else if let visibility {
+            flightCategory = FlightCategory(ceilingFeet: Metar.ceiling(from: clouds),
+                                            visibilitySM: visibility.statuteMiles)
+            isFlightCategoryComputed = true
+        } else {
+            flightCategory = nil
+            isFlightCategoryComputed = false
+        }
+    }
+
+    /// Lowest broken, overcast, or obscured layer.
+    static func ceiling(from clouds: [CloudLayer]) -> Int? {
+        clouds
+            .filter { ["BKN", "OVC", "OVX", "VV"].contains($0.cover) }
+            .compactMap(\.base)
+            .min()
     }
 }
 

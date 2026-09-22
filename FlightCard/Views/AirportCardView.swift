@@ -164,11 +164,21 @@ private struct AirportCardContent: View {
             Text("Observed \(metar.observedAt, format: .relative(presentation: .named))")
                 .font(.footnote)
                 .foregroundStyle(Theme.dim)
-            if reportAgeMinutes > 70 {
+            if metar.isLastReport {
+                Label("Last report of the day. This station won't report again until it reopens.",
+                      systemImage: "moon.fill")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.caution)
+            } else if reportAgeMinutes > 70 {
                 Label("This report is \(reportAgeMinutes) minutes old. The station may be down.",
                       systemImage: "exclamationmark.triangle.fill")
                     .font(.footnote)
                     .foregroundStyle(Theme.caution)
+            }
+            if metar.isFlightCategoryComputed {
+                Text("Flight category computed from the reported ceiling and visibility.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.dim)
             }
         }
     }
