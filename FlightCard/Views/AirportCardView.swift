@@ -39,6 +39,7 @@ struct AirportCardView: View {
     let icao: String
     @State private var model: AirportCardModel
     @AppStorage(Favorites.key) private var favoritesRaw = Favorites.defaultValue
+    @State private var showingDiagram = false
 
     private var isFavorite: Bool {
         Favorites.list(favoritesRaw).contains(icao)
@@ -79,9 +80,12 @@ struct AirportCardView: View {
                     Button("Try again") { Task { await model.load() } }
                 }
             case .loaded(let metar, let airport, let taf):
-                ScrollView {
+                ScrollView(.vertical) {
                     AirportCardContent(metar: metar, airport: airport, taf: taf)
+                        // Lock the card to the screen width so nothing can scroll sideways.
+                        .containerRelativeFrame(.horizontal)
                 }
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
                 .refreshable { await model.load() }
             }
         }
@@ -89,15 +93,24 @@ struct AirportCardView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Theme.panel, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                // Only offer the star once we know the airport has weather.
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                // Only offer these once we know the airport has weather.
                 if isLoaded {
+                    Button { showingDiagram = true } label: {
+                        Image(systemName: "map")
+                    }
+                    .accessibilityLabel("Airport diagram")
+
                     Button(action: toggleFavorite) {
                         Image(systemName: isFavorite ? "star.fill" : "star")
                     }
                     .accessibilityLabel(isFavorite ? "Remove from favorites" : "Add to favorites")
                 }
             }
+        }
+        // Full screen so panning around the chart never dismisses it.
+        .fullScreenCover(isPresented: $showingDiagram) {
+            AirportDiagramView(icao: icao)
         }
         .task { await model.load() }
     }

@@ -1,12 +1,3 @@
-
-//
-//  AppearanceSetting.swift
-//  FlightCard
-//
-//  Created by Benjamin Eccles on 9/22/26.
-//
-
-
 import SwiftUI
 
 // MARK: - Stored settings
