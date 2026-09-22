@@ -10,7 +10,9 @@ struct RunwayWindRow: View {
             Text(end.designator)
                 .font(.title3.weight(.semibold))
                 .monospacedDigit()
-                .frame(width: 56, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: 100, alignment: .leading)
 
             if wind.isCalm {
                 Text("Calm").foregroundStyle(.secondary)

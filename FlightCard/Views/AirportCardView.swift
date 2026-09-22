@@ -82,6 +82,7 @@ private struct AirportCardContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             header
+            favoredRunwayCard
             conditions
             runways
             if let taf {
@@ -138,27 +139,104 @@ private struct AirportCardContent: View {
 
     private var runways: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Runways").font(.headline)
-            if runwayEnds.isEmpty {
+            Text(favored == nil ? "Runways" : "Other runways").font(.headline)
+            if otherRunways.isEmpty {
                 Text("No runway data for this airport.")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(runwayEnds) { end in
-                    RunwayWindRow(
-                        end: end,
-                        wind: metar.wind,
-                        isFavored: favored?.trueHeading == end.trueHeading
-                    )
+                ForEach(otherRunways) { end in
+                    RunwayWindRow(end: end, wind: metar.wind, isFavored: false)
                 }
             }
         }
+    }
+
+    /// Parallels share a heading, so they get one row: "25R / 25L".
+    private var groupedRunways: [Runway.End] {
+        var seen: Set<Int> = []
+        return runwayEnds.compactMap { end in
+            guard seen.insert(end.trueHeading).inserted else { return nil }
+            return Runway.End(designator: parallelDesignators(for: end), trueHeading: end.trueHeading)
+        }
+    }
+
+    /// The favored runway already has the big card above, so skip it here.
+    private var otherRunways: [Runway.End] {
+        groupedRunways.filter { $0.trueHeading != favored?.trueHeading }
+    }
+
+    // MARK: Favored runway card
+
+    /// Answers "which runway, and how much wind" before any details.
+    private var favoredRunwayCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let favored, let c = WindCalc.components(for: metar.wind, runway: favored) {
+                Text("Favored runway")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(parallelDesignators(for: favored))
+                    .font(.system(size: 38, weight: .bold))
+                    .fontWidth(.condensed)
+                HStack(alignment: .top, spacing: 28) {
+                    windStat(
+                        value: knotsText(c.steady.headwindKt, gust: c.gust?.headwindKt),
+                        label: "Headwind"
+                    )
+                    windStat(
+                        value: knotsText(c.steady.crosswindKt, gust: c.gust?.crosswindKt),
+                        label: c.steady.crosswindFromRight ? "Crosswind from right" : "Crosswind from left"
+                    )
+                }
+            } else {
+                Text(noFavoredText)
+                    .font(.title2.weight(.semibold))
+                Text(windText)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background((metar.flightCategory?.color ?? .gray).opacity(0.12), in: .rect(cornerRadius: 14))
+    }
+
+    private func windStat(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.title3.weight(.semibold))
+                .monospacedDigit()
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func knotsText(_ steady: Double, gust: Double?) -> String {
+        let s = Int(abs(steady).rounded())
+        guard let gust else { return "\(s) kt" }
+        return "\(s) G\(Int(abs(gust).rounded())) kt"
+    }
+
+    /// "07L / 07R": parallels share a heading, so name them together.
+    private func parallelDesignators(for end: Runway.End) -> String {
+        runwayEnds
+            .filter { $0.trueHeading == end.trueHeading }
+            .map(\.designator)
+            .joined(separator: " / ")
+    }
+
+    private var noFavoredText: String {
+        if runwayEnds.isEmpty { return "No runway data" }
+        if metar.wind.isCalm { return "Calm wind, any runway" }
+        if case .variable = metar.wind.direction { return "Variable wind" }
+        return "Crosswind on every runway"
     }
 
     private var raw: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Raw METAR").font(.headline)
             Text(metar.rawText)
-                .font(.system(.callout, design: .monospaced))
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
                 .textSelection(.enabled)
         }
     }
