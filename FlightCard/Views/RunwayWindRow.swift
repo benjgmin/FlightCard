@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 struct RunwayWindRow: View {
@@ -18,7 +17,7 @@ struct RunwayWindRow: View {
             } else if let c = WindCalc.components(for: wind, runway: end) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(alongText(c.steady, gust: c.gust))
-                        .foregroundStyle(c.steady.isTailwind ? .red : .primary)
+                        .foregroundStyle(c.steady.headwindKt <= -2 ? .red : .primary)
                     Text(crossText(c.steady, gust: c.gust))
                         .foregroundStyle(.secondary)
                 }
@@ -50,7 +49,9 @@ struct RunwayWindRow: View {
     }
 
     private func alongText(_ steady: WindComponents, gust: WindComponents?) -> String {
-        let label = steady.isTailwind ? "Tailwind" : "Headwind"
+        // Under 2 kt of head/tailwind isn't a meaningful runway difference.
+        if abs(steady.headwindKt) < 2 { return "Near-direct crosswind" }
+        let label = steady.headwindKt < 0 ? "Tailwind" : "Headwind"
         let base = "\(label) \(knots(steady.headwindKt)) kt"
         guard let gust else { return base }
         return base + ", gust \(knots(gust.headwindKt))"

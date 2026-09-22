@@ -160,8 +160,14 @@ private struct AirportCardContent: View {
     }
 
     /// Parallel runways share a heading, so both get highlighted.
+    /// Only call a runway favored when it gets a meaningful headwind.
     private var favored: Runway.End? {
-        WindCalc.favoredRunway(for: metar.wind, among: runwayEnds)
+        guard let best = WindCalc.favoredRunway(for: metar.wind, among: runwayEnds),
+              case .trueDegrees(let direction) = metar.wind.direction,
+              WindCalc.components(windFromTrue: direction, speedKt: Double(metar.wind.speedKt),
+                                  runwayTrueHeading: best.trueHeading).headwindKt >= 2
+        else { return nil }
+        return best
     }
 
     // MARK: Formatting
