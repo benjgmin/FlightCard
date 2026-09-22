@@ -1,6 +1,6 @@
 # FlightCard
 
-An iOS app for checking airport weather the way I actually use it before a flight. It shows which runway the wind favors, the headwind and crosswind for every runway (gusts too), the TAF, density altitude, and the FAA airport diagram. SwiftUI, data from the NOAA Aviation Weather Center.
+FlightCard is an iOS app for checking airport weather the way I actually use it before a flight. It shows which runway the wind favors, the headwind and crosswind for every runway (gusts too), the TAF, density altitude, and the FAA airport diagram. SwiftUI, data from the NOAA Aviation Weather Center.
 
 <table>
   <tr>
