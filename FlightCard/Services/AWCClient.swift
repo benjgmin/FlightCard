@@ -33,7 +33,7 @@ final class AWCClient {
     private var cache: [URL: (fetchedAt: Date, data: Data)] = [:]
 
     // TODO: put your real email or repo link here.
-    private let userAgent = "FlightCard/1.0 (you@example.com)"
+    private let userAgent = "FlightCard/1.0 (github.com/benjgmin/FlightCard)"
 
     init(session: URLSession = .shared) {
         self.session = session
