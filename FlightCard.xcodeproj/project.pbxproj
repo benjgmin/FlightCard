@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B526F34730633EAE0016C01B /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = B526F34630633EAA0016C01B /* README.md */; };
 		B5485783306306DF00F6F0A9 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = B5485782306306DB00F6F0A9 /* .gitignore */; };
 /* End PBXBuildFile section */
 
@@ -22,6 +23,7 @@
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* FlightCard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlightCard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B526F34630633EAA0016C01B /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		B54857773063056F00F6F0A9 /* FlightCardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlightCardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B5485782306306DB00F6F0A9 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -56,6 +58,7 @@
 		000000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				B526F34630633EAA0016C01B /* README.md */,
 				B5485782306306DB00F6F0A9 /* .gitignore */,
 				000000000000000000000010 /* FlightCard */,
 				B54857783063056F00F6F0A9 /* FlightCardTests */,
@@ -157,6 +160,7 @@
 		000000000000000140000000 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
+				B526F34730633EAE0016C01B /* README.md in Resources */,
 				B5485783306306DF00F6F0A9 /* .gitignore in Resources */,
 			);
 		};

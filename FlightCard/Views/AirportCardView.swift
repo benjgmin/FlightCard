@@ -329,14 +329,7 @@ private struct AirportCardContent: View {
     /// differ by a degree or two in the data (ORD's 04L/04R) get snapped to one
     /// heading so they always group together.
     private var runwayEnds: [Runway.End] {
-        var clusters: [Int] = []
-        let ends = (airport?.runways.flatMap(\.ends) ?? []).map { end -> Runway.End in
-            if let match = clusters.first(where: { angularDifference($0, end.trueHeading) <= 3 }) {
-                return Runway.End(designator: end.designator, trueHeading: match)
-            }
-            clusters.append(end.trueHeading)
-            return end
-        }
+        let ends = RunwayGrouping.snapParallels(airport?.runways.flatMap(\.ends) ?? [])
         guard !metar.wind.isCalm, case .trueDegrees(let direction) = metar.wind.direction else { return ends }
         return ends.sorted {
             WindCalc.components(windFromTrue: direction, speedKt: 1, runwayTrueHeading: $0.trueHeading).headwindKt >
@@ -346,11 +339,7 @@ private struct AirportCardContent: View {
 
     /// Parallels share a heading, so they get one entry: "25R / 25L".
     private var groupedRunways: [Runway.End] {
-        var seen: Set<Int> = []
-        return runwayEnds.compactMap { end in
-            guard seen.insert(end.trueHeading).inserted else { return nil }
-            return Runway.End(designator: parallelDesignators(for: end), trueHeading: end.trueHeading)
-        }
+        RunwayGrouping.groupByHeading(runwayEnds)
     }
 
     /// The favored runway already has the summary above, so skip it here.
@@ -369,31 +358,7 @@ private struct AirportCardContent: View {
     }
 
     private func parallelDesignators(for end: Runway.End) -> String {
-        runwayEnds
-            .filter { $0.trueHeading == end.trueHeading }
-            .map(\.designator)
-            .sorted(by: designatorOrder)
-            .joined(separator: " / ")
-    }
-
-    /// 04L before 04R, 09L/09C/09R before 10L/10C/10R.
-    private func designatorOrder(_ a: String, _ b: String) -> Bool {
-        func key(_ designator: String) -> (Int, Int) {
-            let number = Int(designator.prefix { $0.isNumber }) ?? 0
-            let side: Int = switch designator.last ?? " " {
-            case "L": 0
-            case "C": 1
-            case "R": 2
-            default: 1
-            }
-            return (number, side)
-        }
-        return key(a) < key(b)
-    }
-
-    private func angularDifference(_ a: Int, _ b: Int) -> Int {
-        let diff = abs(a - b) % 360
-        return min(diff, 360 - diff)
+        RunwayGrouping.designators(sharing: end.trueHeading, in: runwayEnds)
     }
 
     private var noFavoredText: String {
