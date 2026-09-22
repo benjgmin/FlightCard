@@ -43,6 +43,12 @@ final class AWCClient {
         guard let first = results.first else { throw AWCError.noData(icao.uppercased()) }
         return first
     }
+    
+    /// Returns nil when the airport doesn't issue a TAF (common at small fields).
+    func taf(for icao: String) async throws -> Taf? {
+        let results: [Taf] = try await fetch("taf", ids: icao, maxAge: 600)
+        return results.first
+    }
 
     private func fetch<T: Decodable>(_ endpoint: String, ids: String, maxAge: TimeInterval) async throws -> [T] {
         let id = ids.trimmingCharacters(in: .whitespaces).uppercased()

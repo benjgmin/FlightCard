@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 // MARK: - Loader
@@ -8,7 +7,7 @@ import SwiftUI
 final class AirportCardModel {
     enum State {
         case loading
-        case loaded(Metar, Airport?)
+        case loaded(Metar, Airport?, Taf?)
         case failed(String)
     }
 
@@ -24,7 +23,9 @@ final class AirportCardModel {
             let metar = try await AWCClient.shared.metar(for: icao)
             // Runway data is a bonus. The card still works without it.
             let airport = try? await AWCClient.shared.airport(for: icao)
-            state = .loaded(metar, airport)
+            // Small fields often don't issue a TAF, so this is optional too.
+            let taf = try? await AWCClient.shared.taf(for: icao)
+            state = .loaded(metar, airport, taf)
         } catch {
             // On a failed refresh, keep showing the last good data.
             if case .loaded = state { return }
@@ -57,9 +58,9 @@ struct AirportCardView: View {
                 } actions: {
                     Button("Try again") { Task { await model.load() } }
                 }
-            case .loaded(let metar, let airport):
+            case .loaded(let metar, let airport, let taf):
                 ScrollView {
-                    AirportCardContent(metar: metar, airport: airport)
+                    AirportCardContent(metar: metar, airport: airport, taf: taf)
                         .padding()
                 }
                 .refreshable { await model.load() }
@@ -76,12 +77,16 @@ struct AirportCardView: View {
 private struct AirportCardContent: View {
     let metar: Metar
     let airport: Airport?
+    let taf: Taf?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             header
             conditions
             runways
+            if let taf {
+                TafTimeline(taf: taf)
+            }
             raw
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -104,7 +109,18 @@ private struct AirportCardContent: View {
             Text("Observed \(metar.observedAt, format: .relative(presentation: .named))")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+            if reportAgeMinutes > 70 {
+                Label("This report is \(reportAgeMinutes) minutes old. The station may be down.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
         }
+    }
+
+    /// METARs are hourly, so anything past ~70 minutes means a missed report.
+    private var reportAgeMinutes: Int {
+        Int(Date().timeIntervalSince(metar.observedAt) / 60)
     }
 
     private var conditions: some View {
@@ -159,8 +175,8 @@ private struct AirportCardContent: View {
         }
     }
 
-    /// Parallel runways share a heading, so both get highlighted.
     /// Only call a runway favored when it gets a meaningful headwind.
+    /// Parallel runways share a heading, so both get highlighted.
     private var favored: Runway.End? {
         guard let best = WindCalc.favoredRunway(for: metar.wind, among: runwayEnds),
               case .trueDegrees(let direction) = metar.wind.direction,
