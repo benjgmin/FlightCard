@@ -9,6 +9,8 @@ struct TafTimeline: View {
     private let mainHeight: CGFloat = 32
     private let changeHeight: CGFloat = 16
     private let laneGap: CGFloat = 8
+    /// Room above the bars for the "Now" label.
+    private let topInset: CGFloat = 16
 
     private var start: Date { taf.periods.map(\.start).min() ?? .now }
     private var end: Date { taf.periods.map(\.end).max() ?? .now }
@@ -35,16 +37,22 @@ struct TafTimeline: View {
                 let width = geo.size.width
                 ZStack(alignment: .topLeading) {
                     ForEach(prevailing) { period in
-                        segment(period, width: width, y: 0, height: mainHeight)
+                        segment(period, width: width, y: topInset, height: mainHeight)
                     }
                     ForEach(changes) { period in
-                        segment(period, width: width, y: mainHeight + laneGap, height: changeHeight)
+                        segment(period, width: width, y: topInset + mainHeight + laneGap, height: changeHeight)
                     }
                     if (start...end).contains(Date.now) {
                         Rectangle()
                             .fill(Theme.cyan)
                             .frame(width: 2, height: lanesHeight + 8)
-                            .position(x: x(.now, width), y: lanesHeight / 2)
+                            .position(x: x(.now, width), y: topInset + lanesHeight / 2)
+                            .allowsHitTesting(false)
+                        Text("Now")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Theme.cyan)
+                            .fixedSize()
+                            .position(x: min(max(x(.now, width), 14), width - 14), y: 5)
                             .allowsHitTesting(false)
                     }
                     ForEach(ticks, id: \.self) { tick in
@@ -53,12 +61,12 @@ struct TafTimeline: View {
                             .monospacedDigit()
                             .foregroundStyle(Theme.dim)
                             .fixedSize()
-                            .position(x: min(max(x(tick, width), 14), width - 14), y: lanesHeight + 16)
+                            .position(x: min(max(x(tick, width), 14), width - 14), y: topInset + lanesHeight + 16)
                     }
                 }
-                .frame(width: width, height: lanesHeight + 26, alignment: .topLeading)
+                .frame(width: width, height: topInset + lanesHeight + 26, alignment: .topLeading)
             }
-            .frame(height: lanesHeight + 26)
+            .frame(height: topInset + lanesHeight + 26)
 
             if let selected {
                 PeriodDetail(period: selected, category: taf.flightCategory(for: selected))
@@ -150,6 +158,11 @@ private struct PeriodDetail: View {
                 Text(period.start.formatted(.dateTime.weekday(.abbreviated).hour()))
                     .font(.subheadline)
                     .foregroundStyle(Theme.dim)
+                if isCurrent {
+                    Text("Now")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.cyan)
+                }
                 Spacer()
                 FlightCategoryBadge(category: category, compact: true)
             }
@@ -172,6 +185,10 @@ private struct PeriodDetail: View {
         .foregroundStyle(Theme.ink)
         .padding(14)
         .background(Theme.bezel, in: .rect(cornerRadius: 12))
+    }
+
+    private var isCurrent: Bool {
+        period.start <= .now && .now < period.end
     }
 
     private func item(_ label: String, _ value: String) -> some View {
