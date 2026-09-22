@@ -1,6 +1,6 @@
 # FlightCard
 
-Pilot-grade airport weather for iOS. Decoded METARs and TAFs, a wind dial with every runway drawn at its true heading, per-runway crosswind components with gusts, density altitude, and the official FAA airport diagram, built in SwiftUI on NOAA Aviation Weather Center data.
+An iOS app for checking airport weather the way I actually use it before a flight. It shows which runway the wind favors, the headwind and crosswind for every runway (gusts too), the TAF, density altitude, and the FAA airport diagram. SwiftUI, data from the NOAA Aviation Weather Center.
 
 <table>
   <tr>
@@ -17,18 +17,19 @@ Pilot-grade airport weather for iOS. Decoded METARs and TAFs, a wind dial with e
 
 ## Why
 
-Most weather apps show the numbers. Pilots need to know what the numbers mean for the runway in front of them. FlightCard answers "which runway, and how much wind" at a glance, and keeps the raw METAR and TAF one scroll away so nothing is hidden behind the interpretation.
+I'm a flight student, and before a flight I always end up reading the METAR and doing the crosswind math in my head. I wanted one screen that just tells me which runway and how much wind, with the raw METAR and TAF still right there so I can double check it.
 
 ## Details a pilot would check
 
-- **True vs. magnetic.** METAR winds are true. ATIS and tower winds are magnetic. AWC runway alignment is also true, so crosswind math lines up without conversion, and the dial is labeled true-north-up.
-- **Gusts count.** Headwind and crosswind are computed separately for the steady wind and the gust, and gust crosswind is what gets checked against your limit.
-- **No false precision.** Under 2 kt of head/tailwind reads as "near-direct crosswind," not a favored runway. The math was right before this rule existed, but it told pilots something misleading.
-- **Parallels group correctly.** Runways within 3° share one label, sorted L/C/R. The data lists ORD's 04L and 04R a degree apart, which used to split them.
-- **Exact altimeter.** AWC rounds the altimeter to whole hPa, which can be off by 0.01–0.02 inHg. FlightCard reads the exact value from the raw METAR's `A` group instead.
-- **TEMPO means temporary.** Change groups only list what changes, so they inherit missing fields from the prevailing forecast before a flight category is computed, and they're drawn dashed so they read as "might happen."
-- **Stale data is flagged.** A METAR older than 70 minutes means a missed hourly report, so the app says so.
-- **Fog setup.** A temp/dewpoint spread of 2°C or less in VFR or MVFR gets a caution.
+- METAR winds are true, but ATIS and tower winds are magnetic. AWC's runway headings are also true, so the crosswind math works without converting anything, and the dial is true north up.
+- Headwind and crosswind are figured separately for the steady wind and the gust. Your crosswind limit gets checked against the gust.
+- If the headwind is under 2 kt, the app calls it a near-direct crosswind instead of picking a favored runway. The math was right before I added this, but it was telling pilots something misleading.
+- Parallel runways within 3° share one label, sorted L/C/R. The data has ORD's 04L and 04R a degree apart, which split them until I fixed it.
+- AWC rounds the altimeter to whole hPa, which can be off by 0.01–0.02 inHg, so the app reads the exact number from the raw METAR's `A` group.
+- TEMPO groups only list what changes, so they fill in the rest from the main forecast before getting a flight category. They're drawn dashed since they're "might happen."
+- If AWC leaves the flight category blank, the app works it out from ceiling and visibility using the FAA definitions, and says so. With no visibility it shows nothing instead of guessing VFR.
+- A METAR older than 70 minutes gets flagged as a missed report. A station's last report of the day (`RMK LAST`) gets its own note, since the station is closed, not broken.
+- A temp/dewpoint spread of 2°C or less in VFR or MVFR gets a fog caution.
 
 ## Features
 
@@ -45,7 +46,7 @@ Most weather apps show the numbers. Pilots need to know what the numbers mean fo
 - SwiftUI, Swift concurrency, `@Observable`, iOS 17+
 - Decoding built against real AWC responses, handling the messy parts: `visib` as `"10+"` or a number, `wdir` as `"VRB"`, `204` for no data
 - Respects AWC's rules: custom User-Agent, response caching to stay under the rate limit
-- Runway grouping, wind components, density altitude, TAF decoding, and flight category thresholds live outside the views and are unit tested with Swift Testing (18 tests), including fixtures for ORD, ATL, and BOS
+- Runway grouping, wind components, density altitude, TAF decoding, and flight category thresholds live outside the views and are unit tested with Swift Testing (24 tests), including cases for ORD, ATL, BOS, KBED, and KOMN
 
 ```
 FlightCard/
@@ -58,7 +59,7 @@ FlightCardTests/
 
 ## How I built it
 
-Built with heavy AI assistance. My job was the parts AI gets wrong: checking every output against what a pilot actually sees, catching bugs like the ORD runway ordering and misleading crosswind wording, and making sure the logic that matters is tested.
+I used AI a lot for this. What I did was check everything against what I actually see as a pilot and fix what was wrong. Stuff like the ORD runway labels being backwards and the crosswind wording came from me testing it at real airports, and the logic that matters has tests.
 
 ## Data and disclaimer
 
