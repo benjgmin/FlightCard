@@ -3,46 +3,41 @@ import SwiftUI
 struct RunwayWindRow: View {
     let end: Runway.End
     let wind: Wind
-    let isFavored: Bool
+    let crosswindLimit: Int
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 14) {
             Text(end.designator)
-                .font(.title3.weight(.semibold))
-                .monospacedDigit()
+                .font(.display(24))
+                .foregroundStyle(Theme.ink)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: 100, alignment: .leading)
+                .minimumScaleFactor(0.6)
+                .frame(width: 84, alignment: .leading)
 
             if wind.isCalm {
-                Text("Calm").foregroundStyle(.secondary)
+                Text("Calm").foregroundStyle(Theme.dim)
             } else if let c = WindCalc.components(for: wind, runway: end) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(alongText(c.steady, gust: c.gust))
-                        .foregroundStyle(c.steady.headwindKt <= -2 ? .red : .primary)
+                        .foregroundStyle(c.steady.headwindKt <= -2 ? Theme.caution : Theme.ink)
                     Text(crossText(c.steady, gust: c.gust))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(overLimit(c.steady, c.gust) ? Theme.warning : Theme.dim)
                 }
                 .font(.subheadline)
                 .monospacedDigit()
             } else {
-                Text("Variable wind").foregroundStyle(.secondary)
+                Text("Variable wind").foregroundStyle(Theme.dim)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            if isFavored {
-                Text("Favored")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tint)
+            if let c = WindCalc.components(for: wind, runway: end), !wind.isCalm, overLimit(c.steady, c.gust) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Theme.warning)
+                    .accessibilityLabel("Over your crosswind limit")
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(
-            isFavored ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08),
-            in: .rect(cornerRadius: 10)
-        )
+        .padding(.vertical, 12)
     }
 
     /// Pilots use whole knots.
@@ -50,19 +45,26 @@ struct RunwayWindRow: View {
         Int(abs(value).rounded())
     }
 
+    private func overLimit(_ steady: WindComponents, _ gust: WindComponents?) -> Bool {
+        max(abs(steady.crosswindKt), abs(gust?.crosswindKt ?? 0)).rounded() > Double(crosswindLimit)
+    }
+
     private func alongText(_ steady: WindComponents, gust: WindComponents?) -> String {
         // Under 2 kt of head/tailwind isn't a meaningful runway difference.
         if abs(steady.headwindKt) < 2 { return "Near-direct crosswind" }
         let label = steady.headwindKt < 0 ? "Tailwind" : "Headwind"
         let base = "\(label) \(knots(steady.headwindKt)) kt"
-        guard let gust else { return base }
+        guard let gust, knots(gust.headwindKt) > knots(steady.headwindKt) else { return base }
         return base + ", gust \(knots(gust.headwindKt))"
     }
 
     private func crossText(_ steady: WindComponents, gust: WindComponents?) -> String {
+        if knots(steady.crosswindKt) == 0 && knots(gust?.crosswindKt ?? 0) == 0 { return "No crosswind" }
         let side = steady.crosswindFromRight ? "right" : "left"
-        let base = "Crosswind \(knots(steady.crosswindKt)) kt \(side)"
-        guard let gust else { return base }
-        return base + ", gust \(knots(gust.crosswindKt))"
+        var text = "Crosswind \(knots(steady.crosswindKt)) kt \(side)"
+        if let gust, knots(gust.crosswindKt) > knots(steady.crosswindKt) {
+            text += ", gust \(knots(gust.crosswindKt))"
+        }
+        return text
     }
 }
