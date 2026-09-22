@@ -1,10 +1,3 @@
-//
-//  Metar.swift
-//  FlightCard
-//
-//  Created by Benjamin Eccles on 9/22/26.
-//
-
 
 import Foundation
 
@@ -25,9 +18,14 @@ struct Metar: Decodable, Identifiable {
 
     var id: String { "\(icaoId)-\(observedAt.timeIntervalSince1970)" }
 
-    /// AWC reports altimeter in hPa; US pilots use inHg.
-    var altimeterInHg: Double? { altimeterHpa.map { $0 * 0.02953 } }
-
+    /// Exact value from the raw METAR ("A2994"). Falls back to hPa for non-US stations.
+    var altimeterInHg: Double? {
+        if let match = rawText.firstMatch(of: #/\bA(\d{4})\b/#), let value = Double(match.1) {
+            return value / 100
+        }
+        return altimeterHpa.map { $0 * 0.02953 }
+    }
+    
     /// AWC reports station elevation in meters.
     var elevationFeet: Double? { elevationMeters.map { $0 * 3.28084 } }
 
