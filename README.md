@@ -63,6 +63,10 @@ I used AI a lot for this. What I did was check everything against what I actuall
 
 ## Data and disclaimer
 
-Weather from the [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/). Airport diagrams from the FAA digital Terminal Procedures Publication.
+**Not for navigation.** Weather from the [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/). Airport diagrams from the FAA digital Terminal Procedures Publication.
 
 For situational awareness only. Not a substitute for an official weather briefing.
+
+## License
+
+MIT.
