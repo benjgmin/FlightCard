@@ -69,4 +69,4 @@ For situational awareness only. Not a substitute for an official weather briefin
 
 ## License
 
-MIT.
+MIT
